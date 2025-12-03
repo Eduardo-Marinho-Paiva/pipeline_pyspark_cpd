@@ -4,14 +4,18 @@ from pyspark.sql import SparkSession
 from pyspark.sql.functions import split, col, to_date, date_format, sum, count, max, min, split as spark_split
 
 # 1. Configuração da Sessão
+
+# Configura o Spark para rodar localmente com todos os núcleos disponíveis
+# Local[*] usa todos os núcleos da máquina local
 spark = SparkSession.builder \
     .appName("DashboardsFinanceirosCompleto") \
     .master("local[*]") \
-    .getOrCreate()
+    .getOrCreate() # Procura uma sessão Spark existente ou cria uma nova
 
 spark.sparkContext.setLogLevel("ERROR")
 
 # 2. Leitura do Socket
+# Lê dados de um socket TCP (localhost:9999)
 lines = spark.readStream \
     .format("socket") \
     .option("host", "localhost") \
@@ -20,9 +24,11 @@ lines = spark.readStream \
     .load()
 
 # 3. Tratamento (ETL)
+# Divide as linhas recebidas em colunas usando ";" como separador
 dados = split(lines.value, ";")
 
 # Mapeamento das colunas (0:ID, 1:Valor, 2:Data, 3:Hora, 4:Inst, 5:Tipo)
+# Criação do DataFrame com as colunas nomeadas e tipos adequados
 df_transacoes = lines \
     .withColumn("id", dados.getItem(0)) \
     .withColumn("valor", dados.getItem(1).cast("double")) \
@@ -32,6 +38,7 @@ df_transacoes = lines \
     .withColumn("tipo", dados.getItem(5))
 
 # Formatação e Extração da Hora (Ex: "17:30" -> "17")
+# Filtragem de registros inválidos (valor ou data nulos)
 df_formatado = df_transacoes \
     .withColumn("data", to_date(col("data_str"), "dd/MM/yyyy")) \
     .withColumn("mes_ano", date_format(col("data"), "yyyy-MM")) \
@@ -41,6 +48,8 @@ df_formatado = df_transacoes \
 # 4. TABELA MESTRE (Agregação Granular)
 # Agrupamos por TUDO (Inclusive Hora) para poder derivar as estatísticas depois.
 # Calculamos Max e Min aqui para o Pandas encontrar o Max/Min global depois.
+# Os calculos são realizados em cima de todas as agregações definidas.
+# O resultado é um DataFrame com as métricas agregadas.
 df_mestre = df_formatado.groupBy("mes_ano", "instituicao", "tipo", "hora_simples") \
     .agg(
         sum("valor").alias("soma_valor"),
@@ -50,6 +59,10 @@ df_mestre = df_formatado.groupBy("mes_ano", "instituicao", "tipo", "hora_simples
     )
 
 # 5. Função de Processamento (ForeachBatch)
+# Função que processa cada micro-batch do stream
+# Recebe o DataFrame do batch e o ID do batch
+# Gera os arquivos CSV necessários para os dashboards
+# Como se conecta ao passo 4 (DF Mestre): recebe o DataFrame agregado
 def processar_metricas(df, batch_id):
     pdf = df.toPandas()
     
@@ -73,6 +86,7 @@ def processar_metricas(df, batch_id):
         hora_pico = pdf.groupby('hora_simples')['qtd_transacoes'].sum().idxmax()
         
         # Tipo mais comum
+        # Soma as qtds por tipo e pega o maior
         tipo_comum = pdf.groupby('tipo')['qtd_transacoes'].sum().idxmax()
         
         df_kpi = pd.DataFrame([{

@@ -1,6 +1,6 @@
-import streamlit as st
+import streamlit as st # Biblioteca principal do Streamlit, usada para criar a interface web, gráficos e exibir dados.
 import pandas as pd
-import plotly.express as px
+import plotly.express as px # Biblioteca para criar gráficos interativos. 
 import time
 import os
 
@@ -31,6 +31,8 @@ st.markdown("""
 st.title("📊 Dashboard de Transações Financeiras (Spark Streaming)")
 
 # Função auxiliar para ler CSV sem quebrar se o arquivo estiver sendo escrito ou não existir
+# Ela tenta ler o arquivo e retorna um DataFrame vazio em caso de falha
+# Isso é útil para evitar erros quando o arquivo está sendo escrito pelo Spark
 def ler_dados(arquivo):
     if os.path.exists(arquivo):
         try:
@@ -61,9 +63,12 @@ while True:
     # --- PROCESSAMENTO DOS DADOS PARA EXIBIÇÃO ---
     
     # Extraindo valores únicos do KPI Geral
+    # KPI = Key Performance Indicator (Indicador Chave de Performance)
     # O arquivo dash_kpis_gerais.csv tem apenas 1 linha com os totais
     row = df_geral.iloc[0]
     
+    # Extração dos valores
+    # Obtém os valores dos KPIs do DataFrame, usando 0 como padrão se a chave não existir
     total_processado = row.get('total_processado', 0)
     maior_transacao = row.get('maior_transacao', 0)
     menor_transacao = row.get('menor_transacao', 0)
