@@ -43,7 +43,7 @@ graph LR
 Para executar este projeto, você precisará ter instalado em sua máquina:
 
 1.  **Python 3.8+**
-2.  **Java 8 ou 11** (Obrigatório para rodar o Apache Spark).
+2.  **Java 17 ou superior** (Obrigatório para rodar o Apache Spark).
       * *Nota: Certifique-se de que a variável de ambiente `JAVA_HOME` está configurada.*
 3.  **Bibliotecas Python:**
     Instale as dependências executando:
@@ -111,3 +111,6 @@ streamlit run dashboard.py
 
   * **Erros de Conexão:** Se você encerrar o `servidor_transacoes.py`, o `processador_spark.py` irá parar. Para reiniciar, comece sempre pelo Passo 1.
   * **Porta em Uso:** Se der erro de "Address already in use", aguarde um minuto para o sistema operacional liberar a porta 9999 ou altere a porta nos arquivos `servidor_transacoes.py` e `processador_spark.py`.
+
+
+  ## Links Úteis
